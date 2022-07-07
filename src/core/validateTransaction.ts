@@ -15,9 +15,16 @@ export async function validateTransaction(
     // TODO: handle nonce accounts?
 
     // Check Octane's RPC node for the blockhash to make sure it's synced and the fee is reasonable
-    const feeCalculator = await connection.getFeeCalculatorForBlockhash(transaction.recentBlockhash);
-    if (!feeCalculator.value) throw new Error('blockhash not found');
-    if (feeCalculator.value.lamportsPerSignature > config.lamportsPerSignature) throw new Error('fee too high');
+    // NOTE: getFeeCalculator is deprecated, use getFeeMessage instead
+
+    const txMessage = transaction.compileMessage();
+    const fee = await connection.getFeeForMessage(txMessage, 'confirmed');
+    if (fee.value === undefined || fee.value === null) throw new Error('invalid message');
+    if (fee.value > config.maxFee) throw new Error('fee too high');
+
+    // const feeCalculator = await connection.getFeeCalculatorForBlockhash(transaction.recentBlockhash);
+    // if (!feeCalculator.value) throw new Error('invalid message');
+    // if (feeCalculator.value.lamportsPerSignature > config.lamportsPerSignature) throw new Error('fee too high');
 
     // Check the signatures for length, the primary signature, and secondary signature(s)
     if (!transaction.signatures.length) throw new Error('no signatures');
@@ -47,5 +54,6 @@ export async function validateTransaction(
     const rawTransaction = transaction.serialize();
 
     // Return the primary signature (aka txid) and serialized transaction
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return { signature: base58.encode(transaction.signature!), rawTransaction };
 }

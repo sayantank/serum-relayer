@@ -23,6 +23,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
     const { signature, rawTransaction } = await validateTransaction(transaction);
 
     // Check that the transaction contains a valid transfer to Octane's token account
+    // Instead, validate if transaction is a serum-dex v4 transaction (validateDexTransaction)
     const transfer = await validateTransfer(transaction);
 
     /*
@@ -39,6 +40,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
     try {
         // Simulate, send, and confirm the transaction
         await simulateRawTransaction(rawTransaction);
+        // NOTE: Deprecated method below
         await sendAndConfirmRawTransaction(connection, rawTransaction, { commitment: 'confirmed' });
     } finally {
         await cache.del(key);
