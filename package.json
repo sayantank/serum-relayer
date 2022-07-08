@@ -1,7 +1,6 @@
 {
     "private": true,
     "name": "@solana/octane",
-    "type": "module",
     "version": "0.1.0-alpha.0",
     "author": "Solana Maintainers <maintainers@solana.foundation>",
     "repository": "https://github.com/solana-labs/octane",
@@ -14,7 +13,7 @@
     },
     "scripts": {
         "clean": "shx rm -rf build/*",
-        "build": "yarn clean && esbuild --bundle --platform=node --target=node14 --outdir=build --sourcemap --legal-comments=none `find src/api \\\\( -name '*.ts' \\\\)`",
+        "build": "yarn clean && esbuild --bundle --platform=node --target=node16 --outdir=build --sourcemap --legal-comments=none `find src/api \\\\( -name '*.ts' \\\\)`",
         "vercel-build": "yarn run build --minify",
         "local": "vercel dev",
         "test": "mocha --timeout 30000",
@@ -51,6 +50,7 @@
         "@typescript-eslint/eslint-plugin": "^5.7.0",
         "@typescript-eslint/parser": "^5.7.0",
         "@vercel/node": "^1.12.1",
+        "axios": "^0.27.2",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
         "esbuild": "^0.14.5",

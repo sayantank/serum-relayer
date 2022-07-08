@@ -11,6 +11,7 @@ export async function validateTransaction(
     // Check the fee payer and blockhash for basic validity
     if (!transaction.feePayer?.equals(ENV_FEE_PAYER)) throw new Error('invalid fee payer');
     if (!transaction.recentBlockhash) throw new Error('missing recent blockhash');
+    // if (!transaction.lastValidBlockHeight) throw new Error('missing last valid block height');
 
     // TODO: handle nonce accounts?
 
