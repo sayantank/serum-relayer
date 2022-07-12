@@ -1,10 +1,21 @@
 import fs from 'fs';
-import { initializeAccount, Market, OrderType, Side } from '@bonfida/dex-v4';
-import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, Transaction } from '@solana/web3.js';
+import { DEX_ID, initializeAccount, Market, OrderType, Side } from '@bonfida/dex-v4';
+import {
+    clusterApiUrl,
+    Connection,
+    Keypair,
+    LAMPORTS_PER_SOL,
+    PublicKey,
+    SystemProgram,
+    Transaction,
+    TransactionInstruction,
+} from '@solana/web3.js';
 import axios, { AxiosError } from 'axios';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
-import { Account, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
+import { initializeAccountInstruction } from '../src/dex/dex-v4/js/src/raw_instructions';
+import { Account, getOrCreateAssociatedTokenAccount, mintTo, createTransferInstruction } from '@solana/spl-token';
 import assert from 'assert';
+import BN from 'bn.js';
 
 const MARKET_ADDRESS = new PublicKey('29jz1E8YgfaCS3zmrPttauS4CJS8rZLLL7gdTWFSjWUS');
 
@@ -52,31 +63,62 @@ describe('validation', () => {
             'confirmed'
         );
         await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, owner, BigInt('100000000000000'));
-        await mintTo(
-            connection,
-            owner,
-            QUOTE_MINT,
-            aliceQuoteATA.address,
-            owner,
-            BigInt('100000000000000'),
-            undefined,
-            {
-                commitment: 'confirmed',
-            }
-        );
+        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, owner, BigInt('100000000000000'));
 
-        const userIx = await initializeAccount(market.address, alice.publicKey);
-        const tx = new Transaction().add(userIx);
+        // const userIx = await initializeAccount(market.address, alice.publicKey);
+        // const tx = new Transaction().add(userIx);
 
-        const sig = await connection.sendTransaction(tx, [alice]);
-        await connection.confirmTransaction(sig, 'confirmed');
+        // const sig = await connection.sendTransaction(tx, [alice]);
+        // await connection.confirmTransaction(sig, 'confirmed');
     });
 
-    it('decode', async () => {
+    it('dex-v4', async () => {
         console.log(`owner: ${owner.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
 
-        const ix = await market.makePlaceOrderTransaction(
+        let transferIx: TransactionInstruction;
+
+        try {
+            const { data: costInfo } = await axios.post('http://localhost:3000/api/cost', {
+                mint: '3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs',
+                instructions: [
+                    {
+                        type: 'initializeAccount',
+                        args: {
+                            maxOrders: 10,
+                        },
+                    },
+                    {
+                        type: 'newOrder',
+                    },
+                ],
+            });
+            transferIx = createTransferInstruction(
+                aliceBaseATA.address,
+                BASE_ACCOUNT,
+                alice.publicKey,
+                Number(costInfo.expectedTokenAtomics)
+            );
+        } catch (e) {
+            if (e instanceof AxiosError) {
+                console.error(e.response?.data);
+            } else {
+                console.error(e);
+            }
+            assert(false, 'Failed to get cost.');
+        }
+
+        const [aliceAccount] = await PublicKey.findProgramAddress(
+            [market.address.toBuffer(), alice.publicKey.toBuffer()],
+            DEX_ID
+        );
+
+        const accountIx = new initializeAccountInstruction({
+            market: market.address.toBuffer(),
+            maxOrders: new BN(10),
+        }).getInstruction(DEX_ID, SystemProgram.programId, aliceAccount, alice.publicKey, owner.publicKey);
+
+        const newOrderIx = await market.makePlaceOrderTransaction(
             Side.Bid,
             10,
             100,
@@ -92,8 +134,8 @@ describe('validation', () => {
             blockhash,
             lastValidBlockHeight,
         });
-        tx.add(ix);
-        tx.sign(alice);
+        tx.add(transferIx, accountIx, newOrderIx);
+        tx.partialSign(alice);
 
         const serialized = tx.serialize({
             requireAllSignatures: false,

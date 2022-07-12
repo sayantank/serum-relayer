@@ -6,32 +6,17 @@ import {
     isTransferCheckedInstruction,
     isTransferInstruction,
 } from '@solana/spl-token';
-import { PublicKey, Transaction } from '@solana/web3.js';
-import config from '../../config.json';
+import { Transaction } from '@solana/web3.js';
 import { connection } from './connection';
-
-// Define a lookup table of allowed token mint public keys to their config values
-interface Token {
-    mint: PublicKey;
-    account: PublicKey;
-    decimals: number;
-    fee: bigint;
-}
-
-const tokens = config.endpoints.transfer.tokens.reduce<Record<string, Token>>(function (tokens, token) {
-    tokens[token.mint] = {
-        mint: new PublicKey(token.mint),
-        account: new PublicKey(token.account),
-        decimals: token.decimals,
-        fee: BigInt(token.fee),
-    };
-    return tokens;
-}, {});
+import { CostInfo } from './types';
+import { calculateCost } from './calculateCost';
+import { tokens } from '../utils/token';
 
 // Check that a transaction contains a valid transfer to Octane's token account
 export async function validateTransfer(
-    transaction: Transaction
-): Promise<DecodedTransferInstruction | DecodedTransferCheckedInstruction> {
+    transaction: Transaction,
+    expectedAmountInLamports: number
+): Promise<{ instruction: DecodedTransferInstruction | DecodedTransferCheckedInstruction; costInfo: CostInfo }> {
     // Get the first instruction of the transaction
     const [first] = transaction.instructions;
     if (!first) throw new Error('missing instructions');
@@ -56,8 +41,15 @@ export async function validateTransfer(
     const token = tokens[account.mint.toBase58()];
     if (!token) throw new Error('invalid token');
 
+    const costInfo = await calculateCost(token, expectedAmountInLamports);
+
+    if (amount < BigInt(costInfo.expectedTokenAtomics.toString())) {
+        throw new Error('insufficient amount');
+    }
+
+    // TODO: Not sure if needed
     // Check that the instruction is going to pay the fee
-    if (amount < token.fee) throw new Error('invalid amount');
+    // if (amount < token.fee) throw new Error('invalid amount');
 
     // Check that the instruction has a valid source account
     if (!source.isWritable) throw new Error('source not writable');
@@ -70,7 +62,10 @@ export async function validateTransfer(
 
     // Check that the owner of the source account is valid and has signed
     if (!owner.pubkey.equals(transaction.signatures[1].publicKey)) throw new Error('owner missing signature');
-    if (owner.isWritable) throw new Error('owner is writable');
+
+    // NOTE: owner can be writable if transaction has dex instructions which require it to be writable
+    // if (owner.isWritable) throw new Error('owner is writable');
+
     if (!owner.isSigner) throw new Error('owner not signer');
 
     // If the instruction is a `TransferChecked` instruction, check that the mint and decimals are valid
@@ -87,5 +82,5 @@ export async function validateTransfer(
         if (mint.isSigner) throw new Error('mint is signer');
     }
 
-    return instruction;
+    return { instruction, costInfo };
 }

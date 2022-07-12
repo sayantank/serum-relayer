@@ -1,23 +1,18 @@
-import { Transaction, TransactionSignature } from '@solana/web3.js';
-import base58 from 'bs58';
+import { Transaction } from '@solana/web3.js';
 import config from '../../config.json';
 import { connection } from './connection';
-import { ENV_FEE_PAYER, ENV_SECRET_KEYPAIR } from './env';
+import { ENV_FEE_PAYER } from './env';
 
 // Check that a transaction is basically valid, sign it, and serialize it, verifying the signatures
-export async function validateTransaction(
-    transaction: Transaction
-): Promise<{ signature: TransactionSignature; rawTransaction: Buffer }> {
+export async function validateTransaction(transaction: Transaction): Promise<Transaction> {
     // Check the fee payer and blockhash for basic validity
     if (!transaction.feePayer?.equals(ENV_FEE_PAYER)) throw new Error('invalid fee payer');
     if (!transaction.recentBlockhash) throw new Error('missing recent blockhash');
+
+    // NOTE: transaction.lastValidBlockHeight comes to be undefined even if set from client.
     // if (!transaction.lastValidBlockHeight) throw new Error('missing last valid block height');
 
-    // TODO: handle nonce accounts?
-
-    // Check Octane's RPC node for the blockhash to make sure it's synced and the fee is reasonable
-    // NOTE: getFeeCalculator is deprecated, use getFeeMessage instead
-
+    // NOTE: getFeeCalculator is deprecated, using getFeeMessage instead
     const txMessage = transaction.compileMessage();
     const fee = await connection.getFeeForMessage(txMessage, 'confirmed');
     if (fee.value === undefined || fee.value === null) throw new Error('invalid message');
@@ -40,21 +35,10 @@ export async function validateTransaction(
         if (!signature.signature) throw new Error('missing signature');
     }
 
-    // Prevent draining by making sure that the fee payer isn't provided as writable or a signer to any instruction
-    for (const instruction of transaction.instructions) {
-        for (const key of instruction.keys) {
-            if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER))
-                throw new Error('invalid account');
-        }
+    // NOTE: +1 for the transfer instruction
+    if (transaction.instructions.length > config.maxDexInstructions + 1) {
+        throw new Error('too many instructions');
     }
 
-    // Add the fee payer signature
-    transaction.partialSign(ENV_SECRET_KEYPAIR);
-
-    // Serialize the transaction, verifying the signatures
-    const rawTransaction = transaction.serialize();
-
-    // Return the primary signature (aka txid) and serialized transaction
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return { signature: base58.encode(transaction.signature!), rawTransaction };
+    return transaction;
 }

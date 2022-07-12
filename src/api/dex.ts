@@ -1,8 +1,9 @@
 import { sendAndConfirmRawTransaction, Transaction } from '@solana/web3.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import base58 from 'bs58';
-import { cache, connection, sha256, simulateRawTransaction, validateTransaction } from '../core';
-import { validateInstruction } from '../core/validateInstruction';
+import { cache, connection, ENV_SECRET_KEYPAIR, sha256, simulateRawTransaction, validateTransaction } from '../core';
+import { validateInstructions } from '../core/validateInstructions';
+import { validateTransfer } from '../core/validateTransfer';
 import { cors, rateLimit } from '../middleware';
 
 // Endpoint to pay for transactions with an SPL token transfer
@@ -14,7 +15,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
 
     const serialized = request.body?.transaction;
     if (typeof serialized !== 'string') throw new Error('invalid transaction');
-    const transaction = Transaction.from(Buffer.from(serialized, 'base64'));
+    let transaction = Transaction.from(Buffer.from(serialized, 'base64'));
 
     // Prevent simple duplicate transactions using a hash of the message
     let key = `transaction/${base58.encode(sha256(transaction.serializeMessage()))}`;
@@ -22,11 +23,18 @@ export default async function (request: VercelRequest, response: VercelResponse)
     await cache.set(key, true);
 
     // Check that the transaction is basically valid, sign it, and serialize it, verifying the signatures
-    const { signature, rawTransaction } = await validateTransaction(transaction);
+    transaction = await validateTransaction(transaction);
 
-    // Check that the transaction contains a valid transfer to Octane's token account
-    // Instead, validate if transaction is a serum-dex v4 transaction (validateDexTransaction)
-    await validateInstruction(transaction);
+    const costLamports = await validateInstructions(transaction);
+
+    await validateTransfer(transaction, costLamports);
+
+    // Add the fee payer signature
+    transaction.partialSign(ENV_SECRET_KEYPAIR);
+
+    // Serialize the transaction, verifying the signatures
+    const rawTransaction = transaction.serialize();
+    const signature = base58.encode(transaction.signature!);
 
     /*
        An attacker could make multiple signing requests before the transaction is confirmed. If the source token account

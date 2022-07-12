@@ -1,7 +1,9 @@
 {
     "rpcUrl": "https://api.devnet.solana.com",
     "maxSignatures": 2,
+    "maxDexInstructions": 7,
     "lamportsPerSignature": 5000,
+    "lamportsPerInstruction": 10000,
     "maxFee": 50000,
     "corsOrigin": true,
     "endpoints": {
@@ -11,7 +13,11 @@
                     "mint": "3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs",
                     "account": "45uE47VJMvoxcbUZkmdn7xDMomqzkZySxGMBniJDv942",
                     "decimals": 9,
-                    "fee": 10000000
+                    "fee": 10000000,
+                    "api": {
+                        "type": "coingecko",
+                        "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+                    }
                 }
             ]
         }
