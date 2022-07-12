@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 export enum DexInstruction {
-    CreateMarker = 0,
+    CreateMarket = 0,
     NewOrder = 1,
     Swap = 2,
     CancelOrder = 3,
@@ -13,8 +13,3 @@ export enum DexInstruction {
     CloseMarket = 9,
     UpdateRoyalties = 10,
 }
-
-export type DecodedDexInstruction = {
-    programID: PublicKey;
-    type: DexInstruction;
-};

@@ -1,0 +1,3 @@
+[submodule "src/dex/dex-v4"]
+	path = src/dex/dex-v4
+	url = https://github.com/Bonfida/dex-v4.git

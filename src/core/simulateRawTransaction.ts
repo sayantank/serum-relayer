@@ -21,7 +21,10 @@ export async function simulateRawTransaction(
         undefined,
         includeAccounts
     );
-    if (simulated.value.err) throw simulated.value.err;
+    if (simulated.value.err) {
+        // console.log(simulated);
+        throw { error: simulated.value.err, logs: simulated.value.logs };
+    }
 
     return simulated.value;
 }

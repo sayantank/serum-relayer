@@ -1,9 +1,8 @@
 import { sendAndConfirmRawTransaction, Transaction } from '@solana/web3.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import base58 from 'bs58';
-import { cache, connection, sha256, simulateRawTransaction, validateTransaction, validateTransfer } from '../core';
+import { cache, connection, sha256, simulateRawTransaction, validateTransaction } from '../core';
 import { validateInstruction } from '../core/validateInstruction';
-import { DexInstruction } from '../dex/types';
 import { cors, rateLimit } from '../middleware';
 
 // Endpoint to pay for transactions with an SPL token transfer
@@ -27,7 +26,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
 
     // Check that the transaction contains a valid transfer to Octane's token account
     // Instead, validate if transaction is a serum-dex v4 transaction (validateDexTransaction)
-    await validateInstruction(transaction, DexInstruction.NewOrder);
+    await validateInstruction(transaction);
 
     /*
        An attacker could make multiple signing requests before the transaction is confirmed. If the source token account
@@ -52,7 +51,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
         });
     } catch (e) {
         console.error(e);
-        return response.status(400).send({ error: 'tx failed' });
+        return response.status(400).send(e);
     } finally {
         // await cache.del(key);
     }

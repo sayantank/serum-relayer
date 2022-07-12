@@ -11,6 +11,7 @@ const MARKET_ADDRESS = new PublicKey('29jz1E8YgfaCS3zmrPttauS4CJS8rZLLL7gdTWFSjW
 const BASE_MINT = new PublicKey('3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs');
 const QUOTE_MINT = new PublicKey('EsJBwWW18Am9uG4G38yE6jtAQqd78Ym5QF8tgHVtCuJj');
 
+// Owner accounts
 const BASE_ACCOUNT = new PublicKey('45uE47VJMvoxcbUZkmdn7xDMomqzkZySxGMBniJDv942');
 const QUOTE_ACCOUNT = new PublicKey('EsgW2983rM3DF82dohCwKPT7CVFJadvnaWxP8mFF7DvQ');
 
@@ -99,15 +100,17 @@ describe('validation', () => {
         });
 
         try {
-            const { data } = await axios.post('http://localhost:3000/api/newOrder', {
+            const { data } = await axios.post('http://localhost:3000/api/dex', {
                 transaction: serialized.toString('base64'),
             });
-            console.log(`response: ${data}`);
+            console.log(data);
         } catch (e) {
             if (e instanceof AxiosError) {
                 console.error(e.response?.data);
+            } else {
+                console.error(e);
             }
-            assert(false);
+            assert(false, 'Transaction failed.');
         }
     });
 });

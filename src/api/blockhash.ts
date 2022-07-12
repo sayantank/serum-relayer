@@ -6,7 +6,7 @@ import { rateLimit } from '../middleware';
 export default async function (request: VercelRequest, response: VercelResponse) {
     await rateLimit(request, response);
 
-    const blockhash = await connection.getRecentBlockhash();
+    const blockhash = await connection.getLatestBlockhash();
 
     response.status(200).send({ blockhash });
 }
