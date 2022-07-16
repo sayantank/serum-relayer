@@ -16,9 +16,21 @@ import {
 } from './dex-v4/js/src/raw_instructions';
 import { DexInstruction } from './types';
 
-export function decodeDexInstruction(instruction: TransactionInstruction, programId = DEX_ID) {
-    if (!instruction.data.length) throw new Error('missing instruction data');
+type DecodedDexInstruction =
+    | createMarketInstruction
+    | newOrderInstruction
+    | swapInstruction
+    | cancelOrderInstruction
+    | consumeEventsInstruction
+    | settleInstruction
+    | initializeAccountInstruction
+    | sweepFeesInstruction
+    | closeAccountInstruction
+    | closeMarketInstruction;
+
+export function decodeDexInstruction(instruction: TransactionInstruction, programId = DEX_ID): DecodedDexInstruction {
     if (!instruction.programId.equals(programId)) throw new Error('invalid program id');
+    if (!instruction.data.length) throw new Error('missing instruction data');
 
     const type = u8().decode(instruction.data);
 
@@ -54,7 +66,7 @@ export function decodeDexInstruction(instruction: TransactionInstruction, progra
             return deserialize(closeMarketInstruction.schema, closeMarketInstruction, instruction.data);
         }
         default: {
-            throw new Error(`unknown instruction`);
+            throw new Error('invalid dex instruction type');
         }
     }
 }

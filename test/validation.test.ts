@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { DEX_ID, initializeAccount, Market, OrderType, Side } from '@bonfida/dex-v4';
+import { DEX_ID, Market, OrderType, Side } from '@bonfida/dex-v4';
 import {
     clusterApiUrl,
     Connection,
@@ -13,7 +13,16 @@ import {
 import axios, { AxiosError } from 'axios';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
 import { initializeAccountInstruction } from '../src/dex/dex-v4/js/src/raw_instructions';
-import { Account, getOrCreateAssociatedTokenAccount, mintTo, createTransferInstruction } from '@solana/spl-token';
+import {
+    Account,
+    getOrCreateAssociatedTokenAccount,
+    mintTo,
+    createTransferInstruction,
+    // createAssociatedTokenAccountInstruction,
+    getAssociatedTokenAddress,
+    createTransferCheckedInstruction,
+    createAssociatedTokenAccountInstruction,
+} from '@solana/spl-token';
 import assert from 'assert';
 import BN from 'bn.js';
 
@@ -26,6 +35,8 @@ const QUOTE_MINT = new PublicKey('EsJBwWW18Am9uG4G38yE6jtAQqd78Ym5QF8tgHVtCuJj')
 const BASE_ACCOUNT = new PublicKey('45uE47VJMvoxcbUZkmdn7xDMomqzkZySxGMBniJDv942');
 const QUOTE_ACCOUNT = new PublicKey('EsgW2983rM3DF82dohCwKPT7CVFJadvnaWxP8mFF7DvQ');
 
+const BASE_DECIMALS = 9;
+
 describe('validation', () => {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
@@ -33,6 +44,7 @@ describe('validation', () => {
     let owner: Keypair;
 
     const alice = Keypair.generate();
+    const bob = Keypair.generate();
     let aliceQuoteATA: Account;
     let aliceBaseATA: Account;
 
@@ -64,17 +76,12 @@ describe('validation', () => {
         );
         await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, owner, BigInt('100000000000000'));
         await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, owner, BigInt('100000000000000'));
-
-        // const userIx = await initializeAccount(market.address, alice.publicKey);
-        // const tx = new Transaction().add(userIx);
-
-        // const sig = await connection.sendTransaction(tx, [alice]);
-        // await connection.confirmTransaction(sig, 'confirmed');
     });
 
     it('dex-v4', async () => {
         console.log(`owner: ${owner.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
+        console.log(`bob: ${bob.publicKey.toBase58()}`);
 
         let transferIx: TransactionInstruction;
 
@@ -87,6 +94,12 @@ describe('validation', () => {
                         args: {
                             maxOrders: 10,
                         },
+                    },
+                    {
+                        type: 'createATA',
+                    },
+                    {
+                        type: 'transfer',
                     },
                     {
                         type: 'newOrder',
@@ -107,6 +120,18 @@ describe('validation', () => {
             }
             assert(false, 'Failed to get cost.');
         }
+
+        const bobATA = await getAssociatedTokenAddress(BASE_MINT, bob.publicKey);
+        const ataIx = await createAssociatedTokenAccountInstruction(owner.publicKey, bobATA, bob.publicKey, BASE_MINT);
+
+        const bobTransferIx = await createTransferCheckedInstruction(
+            aliceBaseATA.address,
+            BASE_MINT,
+            bobATA,
+            alice.publicKey,
+            1_000_000_000,
+            BASE_DECIMALS
+        );
 
         const [aliceAccount] = await PublicKey.findProgramAddress(
             [market.address.toBuffer(), alice.publicKey.toBuffer()],
@@ -134,7 +159,7 @@ describe('validation', () => {
             blockhash,
             lastValidBlockHeight,
         });
-        tx.add(transferIx, accountIx, newOrderIx);
+        tx.add(transferIx, ataIx, bobTransferIx, accountIx, newOrderIx);
         tx.partialSign(alice);
 
         const serialized = tx.serialize({
@@ -142,7 +167,7 @@ describe('validation', () => {
         });
 
         try {
-            const { data } = await axios.post('http://localhost:3000/api/dex', {
+            const { data } = await axios.post('http://localhost:3000/api/relay', {
                 transaction: serialized.toString('base64'),
             });
             console.log(data);

@@ -17,3 +17,24 @@ export interface CostInfo {
     expectedTokens: number;
     expectedTokenAtomics: BN;
 }
+
+export const relayInstructionNames = [
+    'transfer',
+    'createATA',
+    'createMarket',
+    'newOrder',
+    'swap',
+    'cancelOrder',
+    'consumeEvents',
+    'settle',
+    'initializeAccount',
+    'sweepFees',
+    'closeAccount',
+    'closeMarket',
+] as const;
+export type RelayInstructionType = typeof relayInstructionNames[number];
+
+export type RelayInstructionConfig = {
+    type: RelayInstructionType;
+    args: any;
+};

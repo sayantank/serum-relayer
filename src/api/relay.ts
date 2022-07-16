@@ -27,7 +27,9 @@ export default async function (request: VercelRequest, response: VercelResponse)
 
     const costLamports = await validateInstructions(transaction);
 
-    await validateTransfer(transaction, costLamports);
+    const { instruction: transfer } = await validateTransfer(transaction.instructions[0], transaction.signatures, {
+        expectedAmountInLamports: costLamports,
+    });
 
     // Add the fee payer signature
     transaction.partialSign(ENV_SECRET_KEYPAIR);
@@ -43,13 +45,13 @@ export default async function (request: VercelRequest, response: VercelResponse)
        simulation abuse, or similar attacks, we implement a simple lockout for the source token account until the
        transaction succeeds or fails.
      */
-    // key = `transfer/${transfer.keys.source.pubkey.toBase58()}`;
-    // if (await cache.get(key)) throw new Error('duplicate transfer');
-    // await cache.set(key, true);
-
-    const blockHeight = await connection.getBlockHeight('finalized');
+    key = `transfer/${transfer.keys.source.pubkey.toBase58()}`;
+    if (await cache.get(key)) throw new Error('duplicate transfer');
+    await cache.set(key, true);
 
     try {
+        const blockHeight = await connection.getBlockHeight('finalized');
+
         // Simulate, send, and confirm the transaction
         await simulateRawTransaction(rawTransaction);
         await sendAndConfirmRawTransaction(connection, rawTransaction, {
@@ -61,7 +63,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
         console.error(e);
         return response.status(400).send(e);
     } finally {
-        // await cache.del(key);
+        await cache.del(key);
     }
 
     // Respond with the confirmed transaction signature
