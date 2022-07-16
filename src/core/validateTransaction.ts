@@ -36,7 +36,7 @@ export async function validateTransaction(transaction: Transaction): Promise<Tra
     }
 
     // NOTE: +1 for the transfer instruction
-    if (transaction.instructions.length > config.maxDexInstructions + 1) {
+    if (transaction.instructions.length > config.maxInstructions + 1) {
         throw new Error('too many instructions');
     }
 

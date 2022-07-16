@@ -8,7 +8,6 @@ export const tokens = config.endpoints.transfer.tokens.reduce<Record<string, Tok
         mint: new PublicKey(token.mint),
         account: new PublicKey(token.account),
         decimals: token.decimals,
-        fee: BigInt(token.fee),
         api: {
             type: token.api.type,
             url: token.api.url,

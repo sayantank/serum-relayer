@@ -8,6 +8,8 @@ import { cors, rateLimit } from '../middleware';
 
 // Endpoint to pay for transactions with an SPL token transfer
 export default async function (request: VercelRequest, response: VercelResponse) {
+    if (request.method !== 'POST') return response.status(405).send('Method not allowed');
+
     await cors(request, response);
     await rateLimit(request, response);
 

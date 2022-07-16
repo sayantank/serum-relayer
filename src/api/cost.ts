@@ -9,6 +9,8 @@ import { RelayInstructionConfig, relayInstructionNames } from '../core/types';
 import { ACCOUNT_SIZE } from '@solana/spl-token';
 
 export default async function (request: VercelRequest, response: VercelResponse) {
+    if (request.method !== 'POST') return response.status(405).send('Method not allowed');
+
     await cors(request, response);
     await rateLimit(request, response);
 

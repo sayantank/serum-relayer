@@ -5,7 +5,6 @@ export interface TokenConfig {
     mint: PublicKey;
     account: PublicKey;
     decimals: number;
-    fee: bigint;
     api: {
         type: string;
         url: string;
