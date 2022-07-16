@@ -22,34 +22,34 @@ export default async function (request: VercelRequest, response: VercelResponse)
     if (await cache.get(key)) throw new Error('duplicate transaction');
     await cache.set(key, true);
 
-    // Check that the transaction is basically valid, sign it, and serialize it, verifying the signatures
-    transaction = await validateTransaction(transaction);
+    try {
+        // Check that the transaction is basically valid, sign it, and serialize it, verifying the signatures
+        transaction = await validateTransaction(transaction);
 
-    const costLamports = await validateInstructions(transaction);
+        const costLamports = await validateInstructions(transaction);
 
-    const { instruction: transfer } = await validateTransfer(transaction.instructions[0], transaction.signatures, {
-        expectedAmountInLamports: costLamports,
-    });
+        const { instruction: transfer } = await validateTransfer(transaction.instructions[0], transaction.signatures, {
+            expectedAmountInLamports: costLamports,
+        });
 
-    // Add the fee payer signature
-    transaction.partialSign(ENV_SECRET_KEYPAIR);
+        // Add the fee payer signature
+        transaction.partialSign(ENV_SECRET_KEYPAIR);
 
-    // Serialize the transaction, verifying the signatures
-    const rawTransaction = transaction.serialize();
-    const signature = base58.encode(transaction.signature!);
+        // Serialize the transaction, verifying the signatures
+        const rawTransaction = transaction.serialize();
+        const signature = base58.encode(transaction.signature!);
 
-    /*
+        /*
        An attacker could make multiple signing requests before the transaction is confirmed. If the source token account
        has the minimum fee balance, validation and simulation of all these requests may succeed. All but the first
        confirmed transaction will fail because the account will be empty afterward. To prevent this race condition,
        simulation abuse, or similar attacks, we implement a simple lockout for the source token account until the
        transaction succeeds or fails.
      */
-    key = `transfer/${transfer.keys.source.pubkey.toBase58()}`;
-    if (await cache.get(key)) throw new Error('duplicate transfer');
-    await cache.set(key, true);
+        key = `transfer/${transfer.keys.source.pubkey.toBase58()}`;
+        if (await cache.get(key)) throw new Error('duplicate transfer');
+        await cache.set(key, true);
 
-    try {
         const blockHeight = await connection.getBlockHeight('finalized');
 
         // Simulate, send, and confirm the transaction
@@ -59,13 +59,20 @@ export default async function (request: VercelRequest, response: VercelResponse)
             blockhash: transaction.recentBlockhash!, // we know it exists because of validateTransaction
             lastValidBlockHeight: blockHeight + 300, // TODO: correct???
         });
+
+        response.status(200).send({ signature });
     } catch (e) {
         console.error(e);
-        return response.status(400).send(e);
+
+        if (e instanceof Error) {
+            response.status(400).send({ error: e.message });
+        } else {
+            response.status(400).send({ error: "Something wen't wrong." });
+        }
     } finally {
         await cache.del(key);
     }
 
+    return;
     // Respond with the confirmed transaction signature
-    return response.status(200).send({ signature });
 }

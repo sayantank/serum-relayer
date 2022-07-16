@@ -36,5 +36,5 @@ export type RelayInstructionType = typeof relayInstructionNames[number];
 
 export type RelayInstructionConfig = {
     type: RelayInstructionType;
-    args: any;
+    args?: any;
 };

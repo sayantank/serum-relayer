@@ -1,5 +1,18 @@
-import { PublicKey, SimulatedTransactionResponse, Transaction } from '@solana/web3.js';
+import { PublicKey, SimulatedTransactionResponse, Transaction, TransactionError } from '@solana/web3.js';
 import { connection } from './connection';
+
+export class SimulateTransactionError extends Error {
+    private error: TransactionError;
+    private logs: string[];
+    constructor(error: TransactionError, logs: string[] | null) {
+        super(error.toString());
+
+        this.error = error;
+        this.logs = logs || [];
+        // Set the prototype explicitly.
+        Object.setPrototypeOf(this, SimulateTransactionError.prototype);
+    }
+}
 
 // Simulate a signed, serialized transaction before broadcasting
 export async function simulateRawTransaction(
@@ -23,7 +36,7 @@ export async function simulateRawTransaction(
     );
     if (simulated.value.err) {
         // console.log(simulated);
-        throw { error: simulated.value.err, logs: simulated.value.logs };
+        throw new SimulateTransactionError(simulated.value.err, simulated.value.logs);
     }
 
     return simulated.value;
