@@ -26,23 +26,7 @@ export const getCostTransferIx = async (instructions: RelayInstructionConfig[], 
     try {
         const { data: costInfo } = await axios.post('http://localhost:3000/api/cost', {
             mint: '3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs',
-            instructions: [
-                {
-                    type: 'initializeAccount',
-                    args: {
-                        maxOrders: 10,
-                    },
-                },
-                {
-                    type: 'createATA',
-                },
-                {
-                    type: 'transfer',
-                },
-                {
-                    type: 'newOrder',
-                },
-            ],
+            instructions: instructions,
         });
         transferIx = createTransferInstruction(
             payerATA,
