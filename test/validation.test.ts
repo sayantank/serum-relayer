@@ -29,7 +29,7 @@ describe('validation', () => {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
     let market: Market;
-    let owner: Keypair;
+    let relayer: Keypair;
 
     const alice = Keypair.generate();
     const bob = Keypair.generate();
@@ -42,7 +42,7 @@ describe('validation', () => {
 
         const fileBuffer = fs.readFileSync('./keys/octane.json');
         const secretKey: number[] = JSON.parse(fileBuffer.toString());
-        owner = Keypair.fromSecretKey(Uint8Array.from(secretKey));
+        relayer = Keypair.fromSecretKey(Uint8Array.from(secretKey));
 
         market = await Market.load(connection, MARKET_ADDRESS);
 
@@ -62,10 +62,10 @@ describe('validation', () => {
             false,
             'confirmed'
         );
-        await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, owner, BigInt('100000000000000'));
-        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, owner, BigInt('100000000000000'));
+        await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000'));
+        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000'));
 
-        console.log(`owner: ${owner.publicKey.toBase58()}`);
+        console.log(`relayer: ${relayer.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
         console.log(`bob: ${bob.publicKey.toBase58()}`);
     });
@@ -94,7 +94,12 @@ describe('validation', () => {
         );
 
         const bobATA = await getAssociatedTokenAddress(BASE_MINT, bob.publicKey);
-        const ataIx = await createAssociatedTokenAccountInstruction(owner.publicKey, bobATA, bob.publicKey, BASE_MINT);
+        const ataIx = await createAssociatedTokenAccountInstruction(
+            relayer.publicKey,
+            bobATA,
+            bob.publicKey,
+            BASE_MINT
+        );
 
         const bobTransferIx = await createTransferCheckedInstruction(
             aliceBaseATA.address,
@@ -105,7 +110,7 @@ describe('validation', () => {
             BASE_DECIMALS
         );
 
-        const accountIx = await getDexInitializeAccountIx(alice, market, owner);
+        const accountIx = await getDexInitializeAccountIx(alice, market, relayer);
 
         const newOrderIx = await market.makePlaceOrderTransaction(
             Side.Bid,
@@ -117,7 +122,7 @@ describe('validation', () => {
             alice.publicKey
         );
 
-        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [
+        const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
             transferIx,
             ataIx,
             bobTransferIx,
@@ -143,12 +148,12 @@ describe('validation', () => {
             BASE_ACCOUNT,
             BASE_MINT,
             aliceBaseATA.address,
-            owner.publicKey,
+            relayer.publicKey,
             10_000_000_000,
             BASE_DECIMALS
         );
 
-        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [
+        const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
             transferIx,
             drainIx,
         ]);
@@ -174,10 +179,10 @@ describe('validation', () => {
             OrderType.Limit,
             SelfTradeBehavior.DecrementTake,
             QUOTE_ACCOUNT,
-            owner.publicKey
+            relayer.publicKey
         );
 
-        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [
+        const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
             transferIx,
             newOrderIx,
         ]);
@@ -196,15 +201,18 @@ describe('validation', () => {
             BASE_MINT
         );
 
-        const ownerATA = await getAssociatedTokenAddress(BASE_MINT, owner.publicKey);
+        const ownerATA = await getAssociatedTokenAddress(BASE_MINT, relayer.publicKey);
         const ataIx = await createAssociatedTokenAccountInstruction(
-            owner.publicKey,
+            relayer.publicKey,
             ownerATA,
-            owner.publicKey,
+            relayer.publicKey,
             BASE_MINT
         );
 
-        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [transferIx, ataIx]);
+        const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
+            transferIx,
+            ataIx,
+        ]);
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
     });
