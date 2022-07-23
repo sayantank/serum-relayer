@@ -185,5 +185,27 @@ describe('validation', () => {
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
     });
 
-    it;
+    it('cant create ata for relayer', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'createATA',
+                },
+            ],
+            alice,
+            BASE_MINT
+        );
+
+        const ownerATA = await getAssociatedTokenAddress(BASE_MINT, owner.publicKey);
+        const ataIx = await createAssociatedTokenAccountInstruction(
+            owner.publicKey,
+            ownerATA,
+            owner.publicKey,
+            BASE_MINT
+        );
+
+        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [transferIx, ataIx]);
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
+    });
 });

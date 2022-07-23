@@ -29,6 +29,8 @@ export async function validateATA(instruction: TransactionInstruction) {
     // validateTransaction already checks that fee relayer is in transaction.signatures, so no need to check again here
     if (!payer.pubkey.equals(ENV_FEE_PAYER)) throw new Error('fee relayer has to pay for ATA');
 
+    if (owner.pubkey.equals(ENV_FEE_PAYER)) throw new Error('cannot initialize ata for relayer');
+
     const ownerATA = await getAssociatedTokenAddress(mint.pubkey, owner.pubkey, false);
     if (!ownerATA.equals(associatedToken.pubkey)) throw new Error('invalid ata');
 
