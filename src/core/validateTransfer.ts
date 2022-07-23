@@ -76,7 +76,7 @@ export async function validateTransfer(
     if (destination.isSigner) throw new Error('destination is signer');
 
     // This check also prevents users from transferring FROM the relayer account
-    // It also assumes that there HAS TO be anothe signature apart from the relayer, which is true since the first transfer ix requires the same.
+    // It also assumes that there HAS TO be another signature apart from the relayer, which is true since the first transfer ix requires the same.
     // Check that the owner of the source account is valid and has signed
     if (!owner.pubkey.equals(signatures[1].publicKey)) throw new Error('owner missing signature');
 

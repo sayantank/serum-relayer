@@ -56,6 +56,12 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
                     const space = USER_ACCOUNT_HEADER_LEN + maxOrders.toNumber() * ORDER_LEN;
                     const rent = await connection.getMinimumBalanceForRentExemption(space, 'confirmed');
                     costLamports += rent;
+                } else {
+                    ix.keys.forEach((key) => {
+                        if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER)) {
+                            throw new Error('fee relayer can only be used as fee payer');
+                        }
+                    });
                 }
                 break;
             }

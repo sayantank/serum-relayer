@@ -20,6 +20,7 @@ import {
     getDexInitializeAccountIx,
     getSerializedTransaction,
     MARKET_ADDRESS,
+    QUOTE_ACCOUNT,
     QUOTE_MINT,
     sendRelayRequest,
 } from './utils';
@@ -127,7 +128,7 @@ describe('validation', () => {
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data));
     });
 
-    it('drain relayer', async () => {
+    it('cant drain relayer', async () => {
         const transferIx = await getCostTransferIx(
             [
                 {
@@ -154,4 +155,35 @@ describe('validation', () => {
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
     });
+
+    it('cant place order as relayer', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'newOrder',
+                },
+            ],
+            alice,
+            BASE_MINT
+        );
+
+        const newOrderIx = await market.makePlaceOrderTransaction(
+            Side.Bid,
+            10,
+            1000,
+            OrderType.Limit,
+            SelfTradeBehavior.DecrementTake,
+            QUOTE_ACCOUNT,
+            owner.publicKey
+        );
+
+        const { serializedTransaction } = await getSerializedTransaction(connection, owner, alice, [
+            transferIx,
+            newOrderIx,
+        ]);
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
+    });
+
+    it;
 });
