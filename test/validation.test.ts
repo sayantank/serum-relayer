@@ -40,7 +40,7 @@ describe('validation', () => {
         const airdropSig = await connection.requestAirdrop(alice.publicKey, 2 * LAMPORTS_PER_SOL);
         await connection.confirmTransaction(airdropSig, 'confirmed');
 
-        const fileBuffer = fs.readFileSync('./keys/octane.json');
+        const fileBuffer = fs.readFileSync('./keys/relayer.json');
         const secretKey: number[] = JSON.parse(fileBuffer.toString());
         relayer = Keypair.fromSecretKey(Uint8Array.from(secretKey));
 
