@@ -21,7 +21,7 @@ import {
     getDexInitializeAccountIx,
     getSerializedTransaction,
     MARKET_ADDRESS,
-    PAY_MINT,
+    PAYMENT_MINTS,
     QUOTE_ACCOUNT,
     QUOTE_MINT,
     sendRelayRequest,
@@ -41,6 +41,8 @@ describe('validation', () => {
     let aliceQuoteATA: Account;
     let aliceBaseATA: Account;
     let alicePayATA: Account;
+
+    const USDC = PAYMENT_MINTS['USDC'];
 
     before(async () => {
         const airdropSig = await connection.requestAirdrop(alice.publicKey, 2 * LAMPORTS_PER_SOL);
@@ -71,7 +73,7 @@ describe('validation', () => {
         alicePayATA = await getOrCreateAssociatedTokenAccount(
             connection,
             alice,
-            PAY_MINT,
+            USDC.mint,
             alice.publicKey,
             false,
             'confirmed'
@@ -79,7 +81,7 @@ describe('validation', () => {
 
         await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000')); // 100k
         await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000')); // 100k
-        await mintTo(connection, alice, PAY_MINT, alicePayATA.address, relayer, BigInt('5000000000')); // 5
+        await mintTo(connection, alice, USDC.mint, alicePayATA.address, relayer, BigInt('5000000000')); // 5
 
         console.log(`relayer: ${relayer.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
@@ -106,7 +108,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            PAY_MINT
+            'USDC'
         );
 
         const bobATA = await getAssociatedTokenAddress(BASE_MINT, bob.publicKey);
@@ -155,7 +157,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            PAY_MINT
+            'USDC'
         );
 
         const drainIx = await createTransferCheckedInstruction(
@@ -183,7 +185,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            PAY_MINT
+            'USDC'
         );
 
         const newOrderIx = await market.makePlaceOrderTransaction(
@@ -212,7 +214,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            PAY_MINT
+            'USDC'
         );
 
         const ownerATA = await getAssociatedTokenAddress(BASE_MINT, relayer.publicKey);
@@ -236,7 +238,7 @@ describe('validation', () => {
 
         try {
             const { data } = await axios.post('http://localhost:3000/api/faucet', {
-                mint: PAY_MINT.toString(),
+                mint: USDC.mint.toString(),
                 receiver: gary.publicKey.toString(),
                 amount: 1_000_000_000,
             });
@@ -248,7 +250,7 @@ describe('validation', () => {
             } else {
                 console.error(e);
             }
-            assert(false, 'Failed to get cost.');
+            assert(false, 'Failed to get tokens.');
         }
     });
 });

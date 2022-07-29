@@ -7,12 +7,33 @@
     "corsOrigin": true,
     "tokens": [
         {
+            "symbol": "USDC",
             "mint": "43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8",
             "account": "ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE",
             "decimals": 9,
             "api": {
                 "type": "coingecko",
                 "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+            }
+        },
+        {
+            "symbol": "ETH",
+            "mint": "HypB1tUiVYLDutrreeQYAZxW7bYkgrdVq6gwgsKaeyPC",
+            "account": "HQKnR39K3DZjKbuD2tNx6j5LUduBsnh4KvTRUimWm3xS",
+            "decimals": 9,
+            "api": {
+                "type": "coingecko",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=eth"
+            }
+        },
+        {
+            "symbol": "BTC",
+            "mint": "ESspyQX2uXccWxJ4sQm5gN6AuQ7SwBCTLsHfRxHX5w85",
+            "account": "6DtFhVdX9oMzLU6pr5S1BMkHEa7UTfFGG9GQDN8xX1CM",
+            "decimals": 9,
+            "api": {
+                "type": "coingecko",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=btc"
             }
         }
     ]

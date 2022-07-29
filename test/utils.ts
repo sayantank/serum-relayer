@@ -11,8 +11,28 @@ import { initializeAccountInstruction } from '../src/dex/dex-v4/js/src/raw_instr
 
 export const MARKET_ADDRESS = new PublicKey('29jz1E8YgfaCS3zmrPttauS4CJS8rZLLL7gdTWFSjWUS');
 
-export const PAY_MINT = new PublicKey('43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8');
-export const PAY_ACCOUNT = new PublicKey('ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE');
+const paymentMintSymbols = ['USDC', 'BTC', 'ETH'] as const;
+
+type PaymentSymbols = typeof paymentMintSymbols[number];
+interface PaymentMintConfig {
+    mint: PublicKey;
+    account: PublicKey;
+}
+
+export const PAYMENT_MINTS: Record<PaymentSymbols, PaymentMintConfig> = {
+    USDC: {
+        mint: new PublicKey('43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8'),
+        account: new PublicKey('ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE'),
+    },
+    ETH: {
+        mint: new PublicKey('HypB1tUiVYLDutrreeQYAZxW7bYkgrdVq6gwgsKaeyPC'),
+        account: new PublicKey('HQKnR39K3DZjKbuD2tNx6j5LUduBsnh4KvTRUimWm3xS'),
+    },
+    BTC: {
+        mint: new PublicKey('ESspyQX2uXccWxJ4sQm5gN6AuQ7SwBCTLsHfRxHX5w85'),
+        account: new PublicKey('6DtFhVdX9oMzLU6pr5S1BMkHEa7UTfFGG9GQDN8xX1CM'),
+    },
+};
 
 export const BASE_MINT = new PublicKey('3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs');
 export const QUOTE_MINT = new PublicKey('EsJBwWW18Am9uG4G38yE6jtAQqd78Ym5QF8tgHVtCuJj');
@@ -23,17 +43,23 @@ export const QUOTE_ACCOUNT = new PublicKey('EsgW2983rM3DF82dohCwKPT7CVFJadvnaWxP
 
 export const BASE_DECIMALS = 9;
 
-export const getCostTransferIx = async (instructions: RelayInstructionConfig[], payer: Keypair, mint: PublicKey) => {
-    const payerATA = await getAssociatedTokenAddress(mint, payer.publicKey);
+export const getCostTransferIx = async (
+    instructions: RelayInstructionConfig[],
+    payer: Keypair,
+    paymentSymbol: PaymentSymbols
+) => {
+    const paymentConfig = PAYMENT_MINTS[paymentSymbol];
+
+    const payerATA = await getAssociatedTokenAddress(paymentConfig.mint, payer.publicKey);
     let transferIx: TransactionInstruction;
     try {
         const { data: costInfo } = await axios.post('http://localhost:3000/api/cost', {
-            mint: mint.toString(),
+            mint: paymentConfig.mint.toString(),
             instructions: instructions,
         });
         transferIx = createTransferInstruction(
             payerATA,
-            PAY_ACCOUNT,
+            paymentConfig.account,
             payer.publicKey,
             Number(costInfo.expectedTokenAtomics)
         );
