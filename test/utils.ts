@@ -11,6 +11,9 @@ import { initializeAccountInstruction } from '../src/dex/dex-v4/js/src/raw_instr
 
 export const MARKET_ADDRESS = new PublicKey('29jz1E8YgfaCS3zmrPttauS4CJS8rZLLL7gdTWFSjWUS');
 
+export const PAY_MINT = new PublicKey('43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8');
+export const PAY_ACCOUNT = new PublicKey('ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE');
+
 export const BASE_MINT = new PublicKey('3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs');
 export const QUOTE_MINT = new PublicKey('EsJBwWW18Am9uG4G38yE6jtAQqd78Ym5QF8tgHVtCuJj');
 
@@ -25,12 +28,12 @@ export const getCostTransferIx = async (instructions: RelayInstructionConfig[], 
     let transferIx: TransactionInstruction;
     try {
         const { data: costInfo } = await axios.post('http://localhost:3000/api/cost', {
-            mint: '3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs',
+            mint: mint.toString(),
             instructions: instructions,
         });
         transferIx = createTransferInstruction(
             payerATA,
-            BASE_ACCOUNT,
+            PAY_ACCOUNT,
             payer.publicKey,
             Number(costInfo.expectedTokenAtomics)
         );

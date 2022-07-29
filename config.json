@@ -9,8 +9,8 @@
         "transfer": {
             "tokens": [
                 {
-                    "mint": "3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs",
-                    "account": "45uE47VJMvoxcbUZkmdn7xDMomqzkZySxGMBniJDv942",
+                    "mint": "43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8",
+                    "account": "ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE",
                     "decimals": 9,
                     "api": {
                         "type": "coingecko",

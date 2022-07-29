@@ -10,6 +10,7 @@ import {
     getAssociatedTokenAddress,
     createTransferCheckedInstruction,
     createAssociatedTokenAccountInstruction,
+    createTransferInstruction,
 } from '@solana/spl-token';
 
 import {
@@ -20,6 +21,7 @@ import {
     getDexInitializeAccountIx,
     getSerializedTransaction,
     MARKET_ADDRESS,
+    PAY_MINT,
     QUOTE_ACCOUNT,
     QUOTE_MINT,
     sendRelayRequest,
@@ -33,8 +35,10 @@ describe('validation', () => {
 
     const alice = Keypair.generate();
     const bob = Keypair.generate();
+
     let aliceQuoteATA: Account;
     let aliceBaseATA: Account;
+    let alicePayATA: Account;
 
     before(async () => {
         const airdropSig = await connection.requestAirdrop(alice.publicKey, 2 * LAMPORTS_PER_SOL);
@@ -62,8 +66,21 @@ describe('validation', () => {
             false,
             'confirmed'
         );
+        alicePayATA = await getOrCreateAssociatedTokenAccount(
+            connection,
+            alice,
+            PAY_MINT,
+            alice.publicKey,
+            false,
+            'confirmed'
+        );
+
         await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000'));
         await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000'));
+
+        if (alicePayATA.amount < 5_000_000_000) {
+            await mintTo(connection, alice, PAY_MINT, alicePayATA.address, relayer, BigInt('10000000000'));
+        }
 
         console.log(`relayer: ${relayer.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
@@ -90,7 +107,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            BASE_MINT
+            PAY_MINT
         );
 
         const bobATA = await getAssociatedTokenAddress(BASE_MINT, bob.publicKey);
@@ -101,13 +118,11 @@ describe('validation', () => {
             BASE_MINT
         );
 
-        const bobTransferIx = await createTransferCheckedInstruction(
+        const bobTransferIx = await createTransferInstruction(
             aliceBaseATA.address,
-            BASE_MINT,
             bobATA,
             alice.publicKey,
-            1_000_000_000,
-            BASE_DECIMALS
+            1_000_000_000
         );
 
         const accountIx = await getDexInitializeAccountIx(alice, market, relayer);
@@ -141,7 +156,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            BASE_MINT
+            PAY_MINT
         );
 
         const drainIx = await createTransferCheckedInstruction(
@@ -169,7 +184,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            BASE_MINT
+            PAY_MINT
         );
 
         const newOrderIx = await market.makePlaceOrderTransaction(
@@ -198,7 +213,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            BASE_MINT
+            PAY_MINT
         );
 
         const ownerATA = await getAssociatedTokenAddress(BASE_MINT, relayer.publicKey);
