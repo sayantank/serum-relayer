@@ -35,6 +35,26 @@
                 "type": "coingecko",
                 "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=btc"
             }
+        },
+        {
+            "symbol": "USDT",
+            "mint": "FsKJ7bT8mxquX98vJfVcvt1UkvyY7QJamctmTTtE1a8V",
+            "account": "7tKFqb7ykFwio8CsZiNfY7Qa9nczvPssVArw33G31hMA",
+            "decimals": 9,
+            "api": {
+                "type": "coingecko",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+            }
+        },
+        {
+            "symbol": "BNB",
+            "mint": "9k9qXL9J4TMToa54Mz8GaYToLAhLUVgi5JqKut16BNz5",
+            "account": "6AnYJgdV63ACbnUKg9v7994hYLbQpNfv7i3e5ngDs2Bz",
+            "decimals": 9,
+            "api": {
+                "type": "coingecko",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=bnb"
+            }
         }
     ]
 }
