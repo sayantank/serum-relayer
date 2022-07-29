@@ -5,19 +5,15 @@
     "lamportsPerInstruction": 10000,
     "maxFee": 50000,
     "corsOrigin": true,
-    "endpoints": {
-        "transfer": {
-            "tokens": [
-                {
-                    "mint": "43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8",
-                    "account": "ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE",
-                    "decimals": 9,
-                    "api": {
-                        "type": "coingecko",
-                        "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
-                    }
-                }
-            ]
+    "tokens": [
+        {
+            "mint": "43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL5j7GDNJ8",
+            "account": "ETtDjTrW6D8JFbWmvwUknFF24ouNXVDjNrVyHwCamHQE",
+            "decimals": 9,
+            "api": {
+                "type": "coingecko",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+            }
         }
-    }
+    ]
 }

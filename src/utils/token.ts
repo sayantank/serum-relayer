@@ -3,7 +3,7 @@ import config from '../../config.json';
 import { TokenConfig } from '../core/types';
 
 // Define a lookup table of allowed token mint public keys to their config values
-export const tokens = config.endpoints.transfer.tokens.reduce<Record<string, TokenConfig>>(function (tokens, token) {
+export const tokens = config.tokens.reduce<Record<string, TokenConfig>>(function (tokens, token) {
     tokens[token.mint] = {
         mint: new PublicKey(token.mint),
         account: new PublicKey(token.account),

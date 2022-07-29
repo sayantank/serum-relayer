@@ -26,6 +26,8 @@ import {
     QUOTE_MINT,
     sendRelayRequest,
 } from './utils';
+import axios, { AxiosError } from 'axios';
+import assert from 'assert';
 
 describe('validation', () => {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
@@ -75,12 +77,9 @@ describe('validation', () => {
             'confirmed'
         );
 
-        await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000'));
-        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000'));
-
-        if (alicePayATA.amount < 5_000_000_000) {
-            await mintTo(connection, alice, PAY_MINT, alicePayATA.address, relayer, BigInt('10000000000'));
-        }
+        await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000')); // 100k
+        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000')); // 100k
+        await mintTo(connection, alice, PAY_MINT, alicePayATA.address, relayer, BigInt('5000000000')); // 5
 
         console.log(`relayer: ${relayer.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
@@ -230,5 +229,26 @@ describe('validation', () => {
         ]);
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
+    });
+
+    it('can mint from faucet', async () => {
+        const gary = Keypair.generate();
+
+        try {
+            const { data } = await axios.post('http://localhost:3000/api/faucet', {
+                mint: PAY_MINT.toString(),
+                receiver: gary.publicKey.toString(),
+                amount: 1_000_000_000,
+            });
+            console.log('faucet sig: ', data);
+            assert(true);
+        } catch (e) {
+            if (e instanceof AxiosError) {
+                console.error(e.response?.data);
+            } else {
+                console.error(e);
+            }
+            assert(false, 'Failed to get cost.');
+        }
     });
 });
