@@ -11,7 +11,7 @@ export async function calculateCost(token: TokenConfig, expectedAmountInLamports
         case 'coingecko': {
             try {
                 const { data } = await axios.get(token.api.url);
-                solPrice = data.solana.usd;
+                solPrice = data.solana[token.api.symbol];
             } catch (e) {
                 console.error(e);
                 throw new Error('could not fetch sol price');

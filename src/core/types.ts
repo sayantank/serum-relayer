@@ -9,6 +9,7 @@ export interface TokenConfig {
     api: {
         type: string;
         url: string;
+        symbol: string;
     };
 }
 

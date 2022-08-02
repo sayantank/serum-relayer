@@ -12,6 +12,7 @@ export const tokens = config.tokens.reduce<Record<string, TokenConfig>>(function
         api: {
             type: token.api.type,
             url: token.api.url,
+            symbol: token.api.symbol,
         },
     };
     return tokens;
