@@ -14,6 +14,8 @@ export default async function (request: VercelRequest, response: VercelResponse)
     await cors(request, response);
     await rateLimit(request, response);
 
+    console.log(request.body);
+
     const mint = request.body?.mint;
     if (!mint) return response.status(400).send({ error: 'mint missing' });
 
