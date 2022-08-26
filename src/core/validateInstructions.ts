@@ -1,15 +1,14 @@
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { DEX_ID } from '@bonfida/dex-v4';
+import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Transaction } from '@solana/web3.js';
 import config from '../../config.json';
-import { ENV_FEE_PAYER } from './env';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
 import { initializeAccountInstruction } from '../dex/dex-v4/js/src/raw_instructions';
 import { connection } from './connection';
-import { Transaction } from '@solana/web3.js';
 import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from './consts';
-import { DEX_ID } from '@bonfida/dex-v4';
-import { validateTransfer } from './validateTransfer';
+import { ENV_FEE_PAYER } from './env';
 import { validateATA } from './validateATA';
-import { ACCOUNT_SIZE } from '@solana/spl-token';
+import { validateTransfer } from './validateTransfer';
 
 export async function validateInstructions(transaction: Transaction): Promise<number> {
     let costLamports = 0;
@@ -64,6 +63,9 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
                     });
                 }
                 break;
+            }
+            default: {
+                throw new Error(`unknown program id ${ix.programId.toString()}`);
             }
         }
 

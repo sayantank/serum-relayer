@@ -248,7 +248,7 @@ describe('validation', () => {
         }
     });
 
-    it('can drain the relayer', async () => {
+    it('cant drain the relayer because of unknown program id', async () => {
         const transferIx = await getCostTransferIx(
             [
                 {
