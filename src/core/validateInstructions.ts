@@ -1,9 +1,11 @@
-import { DEX_ID } from '@bonfida/dex-v4';
 import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, decodeInstruction, isCloseAccountInstruction, isInitializeAccountInstruction, isTransferCheckedInstruction, isTransferInstruction, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { SystemProgram, Transaction } from '@solana/web3.js';
 import config from '../../config.json';
+import { DEX_ID } from '../dex/consts';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
 import { initializeAccountInstruction } from '../dex/dex-v4/js/src/raw_instructions';
+import { ROUTER_ID } from '../router/consts';
+import { decodeRouterInstruction } from '../router/decodeRouterInstructions';
 import { connection } from './connection';
 import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from './consts';
 import { ENV_FEE_PAYER } from './env';
@@ -80,6 +82,15 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
                         }
                     });
                 }
+                break;
+            }
+            case ROUTER_ID.toBase58(): {
+                decodeRouterInstruction(ix);
+                ix.keys.forEach((key) => {
+                    if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER)) {
+                        throw new Error('fee relayer can only be used as fee payer');
+                    }
+                });
                 break;
             }
             default: {

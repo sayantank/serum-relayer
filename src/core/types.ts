@@ -35,7 +35,7 @@ export const relayInstructionNames = [
     'sweepFees',
     'closeAccount',
     'closeMarket',
-    'swapExactTokensForTokens', // TODO
+    'swapExactTokensForTokens',
 ] as const;
 export type RelayInstructionType = typeof relayInstructionNames[number];
 

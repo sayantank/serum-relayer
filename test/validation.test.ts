@@ -1,5 +1,6 @@
 import { Market, OrderType, Side } from '@bonfida/dex-v4';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
+import { AnchorProvider, Idl, Program, Wallet } from '@project-serum/anchor';
 import {
     Account, ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createCloseAccountInstruction, createInitializeAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
     // createAssociatedTokenAccountInstruction,
@@ -8,21 +9,24 @@ import {
     TOKEN_PROGRAM_ID
 } from '@solana/spl-token';
 import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
-import fs from 'fs';
-
 import assert from 'assert';
 import axios, { AxiosError } from 'axios';
+import { BN } from 'bn.js';
+import fs from 'fs';
+
+import { DEX_ID } from '../src/dex/consts';
+import { Router as IDL_ROUTER } from '../src/router/idl-router';
 import {
-    BASE_ACCOUNT,
-    BASE_DECIMALS,
-    BASE_MINT,
+    BTC_ACCOUNT,
+    BTC_DECIMALS,
+    BTC_MARKET_ADDRESS,
+    BTC_MINT,
+    ETH_MARKET_ADDRESS,
+    ETH_MINT,
     getCostTransferIx,
     getDexInitializeAccountIx,
     getSerializedTransaction,
-    MARKET_ADDRESS,
-    QUOTE_ACCOUNT,
-    QUOTE_MINT,
-    sendRelayRequest,
+    sendRelayRequest, USDC_ACCOUNT,
     USDC_DEV_MINT,
     WRAPPED_SOL_MINT
 } from './utils';
@@ -30,15 +34,17 @@ import {
 describe('validation', () => {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
-    let market: Market;
+    let btcMarket: Market;
+    let ethMarket: Market;
+
     let relayer: Keypair;
 
     const alice = Keypair.generate();
     const bob = Keypair.generate();
 
-    let aliceQuoteATA: Account;
-    let aliceBaseATA: Account;
-    let alicePayATA: Account;
+    let aliceBtcATA: Account;
+    let aliceEthATA: Account;
+    let aliceUsdcATA: Account;
 
     before(async () => {
         const airdropSig = await connection.requestAirdrop(alice.publicKey, 2 * LAMPORTS_PER_SOL);
@@ -48,25 +54,27 @@ describe('validation', () => {
         const secretKey: number[] = JSON.parse(fileBuffer.toString());
         relayer = Keypair.fromSecretKey(Uint8Array.from(secretKey));
 
-        market = await Market.load(connection, MARKET_ADDRESS);
+        btcMarket = await Market.load(connection, BTC_MARKET_ADDRESS, DEX_ID);
+        ethMarket = await Market.load(connection, ETH_MARKET_ADDRESS, DEX_ID);
+        // solMarket = await Market.load(connection, SOL_MARKET_ADDRESS, DEX_ID);
 
-        aliceBaseATA = await getOrCreateAssociatedTokenAccount(
+        aliceBtcATA = await getOrCreateAssociatedTokenAccount(
             connection,
             alice,
-            BASE_MINT,
+            BTC_MINT,
             alice.publicKey,
             false,
             'confirmed'
         );
-        aliceQuoteATA = await getOrCreateAssociatedTokenAccount(
+        aliceEthATA = await getOrCreateAssociatedTokenAccount(
             connection,
             alice,
-            QUOTE_MINT,
+            ETH_MINT,
             alice.publicKey,
             false,
             'confirmed'
         );
-        alicePayATA = await getOrCreateAssociatedTokenAccount(
+        aliceUsdcATA = await getOrCreateAssociatedTokenAccount(
             connection,
             alice,
             USDC_DEV_MINT,
@@ -75,9 +83,9 @@ describe('validation', () => {
             'confirmed'
         );
 
-        await mintTo(connection, alice, BASE_MINT, aliceBaseATA.address, relayer, BigInt('100000000000000')); // 100k
-        await mintTo(connection, alice, QUOTE_MINT, aliceQuoteATA.address, relayer, BigInt('100000000000000')); // 100k
-        await mintTo(connection, alice, USDC_DEV_MINT, alicePayATA.address, relayer, BigInt('5000000000')); // 5
+        await mintTo(connection, alice, BTC_MINT, aliceBtcATA.address, relayer, BigInt('100000000000000')); // 100k
+        await mintTo(connection, alice, ETH_MINT, aliceEthATA.address, relayer, BigInt('100000000000000')); // 100k
+        await mintTo(connection, alice, USDC_DEV_MINT, aliceUsdcATA.address, relayer, BigInt('100000000000000')); // 100k
 
         console.log(`relayer: ${relayer.publicKey.toBase58()}`);
         console.log(`alice: ${alice.publicKey.toBase58()}`);
@@ -104,33 +112,33 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         );
 
-        const bobATA = await getAssociatedTokenAddress(BASE_MINT, bob.publicKey);
+        const bobATA = await getAssociatedTokenAddress(BTC_MINT, bob.publicKey);
         const ataIx = await createAssociatedTokenAccountInstruction(
             relayer.publicKey,
             bobATA,
             bob.publicKey,
-            BASE_MINT
+            BTC_MINT
         );
 
         const bobTransferIx = await createTransferInstruction(
-            aliceBaseATA.address,
+            aliceBtcATA.address,
             bobATA,
             alice.publicKey,
             1_000_000_000
         );
 
-        const accountIx = await getDexInitializeAccountIx(alice, market, relayer);
+        const accountIx = await getDexInitializeAccountIx(alice, btcMarket, relayer);
 
-        const newOrderIx = await market.makePlaceOrderTransaction(
+        const newOrderIx = await btcMarket.makePlaceOrderTransaction(
             Side.Bid,
             10,
             100,
             OrderType.Limit,
             SelfTradeBehavior.DecrementTake,
-            aliceQuoteATA.address,
+            aliceUsdcATA.address,
             alice.publicKey
         );
 
@@ -153,16 +161,16 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         );
 
         const drainIx = await createTransferCheckedInstruction(
-            BASE_ACCOUNT,
-            BASE_MINT,
-            aliceBaseATA.address,
+            BTC_ACCOUNT,
+            BTC_MINT,
+            aliceBtcATA.address,
             relayer.publicKey,
             10_000_000_000,
-            BASE_DECIMALS
+            BTC_DECIMALS
         );
 
         const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
@@ -181,16 +189,16 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         );
 
-        const newOrderIx = await market.makePlaceOrderTransaction(
+        const newOrderIx = await btcMarket.makePlaceOrderTransaction(
             Side.Bid,
             10,
             1000,
             OrderType.Limit,
             SelfTradeBehavior.DecrementTake,
-            QUOTE_ACCOUNT,
+            USDC_ACCOUNT,
             relayer.publicKey
         );
 
@@ -210,15 +218,15 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         );
 
-        const ownerATA = await getAssociatedTokenAddress(BASE_MINT, relayer.publicKey);
+        const ownerATA = await getAssociatedTokenAddress(BTC_MINT, relayer.publicKey);
         const ataIx = await createAssociatedTokenAccountInstruction(
             relayer.publicKey,
             ownerATA,
             relayer.publicKey,
-            BASE_MINT
+            BTC_MINT
         );
 
         const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
@@ -258,7 +266,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         );
 
         const drainIx = SystemProgram.transfer({
@@ -283,7 +291,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         )
 
         const tokenAccount = Keypair.generate();
@@ -314,7 +322,7 @@ describe('validation', () => {
                 },
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         )
 
         const FAULTY_SIZE = ACCOUNT_SIZE + 1;
@@ -352,7 +360,7 @@ describe('validation', () => {
                 }
             ],
             alice,
-            USDC_DEV_MINT
+            BTC_MINT
         )
 
         const tokenAccount = Keypair.generate();
@@ -382,6 +390,73 @@ describe('validation', () => {
             alice,
             [transferIx, createAccountIx, initAccountIx, closeAccountIx],
             { signer: tokenAccount }
+        );
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data));
+    });
+
+    it('can swap from eth to btc via usdc', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'swapExactTokensForTokens',
+                }
+            ],
+            alice,
+            BTC_MINT
+        )
+
+        const routerAddress = new PublicKey(IDL_ROUTER.metadata.address);
+
+        const wallet = new Wallet(alice);
+        const provider = new AnchorProvider(connection, wallet, { commitment: 'processed' });
+        const program = new Program(IDL_ROUTER as Idl, routerAddress, provider);
+
+        const [ethMarketSigner] = await PublicKey.findProgramAddress([ethMarket.address.toBuffer()], ethMarket.programId);
+        const [btcMarketSigner] = await PublicKey.findProgramAddress([btcMarket.address.toBuffer()], btcMarket.programId);
+
+        const swapIdlIx = program.methods.swapExactTokensForTokens(
+            new BN(1e9),
+            new BN(1e4),
+            new BN(2 ** 32),
+            0)
+            .accounts({
+                from: {
+                    market: ethMarket.address,
+                    orderbook: ethMarket.orderbookAddress,
+                    eventQueue: ethMarket.eventQueueAddress,
+                    bids: ethMarket.bidsAddress,
+                    asks: ethMarket.asksAddress,
+                    baseVault: ethMarket.baseVault,
+                    quoteVault: ethMarket.quoteVault,
+                    marketSigner: ethMarketSigner
+                },
+                to: {
+                    market: btcMarket.address,
+                    orderbook: btcMarket.orderbookAddress,
+                    eventQueue: btcMarket.eventQueueAddress,
+                    bids: btcMarket.bidsAddress,
+                    asks: btcMarket.asksAddress,
+                    baseVault: btcMarket.baseVault,
+                    quoteVault: btcMarket.quoteVault,
+                    marketSigner: btcMarketSigner
+                },
+                inputTokenAccount: aliceEthATA.address,
+                intermediateTokenAccount: aliceUsdcATA.address,
+                outputTokenAccount: aliceBtcATA.address,
+                userOwner: alice.publicKey,
+                splTokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                dexProgram: new PublicKey(DEX_ID)
+            });
+
+        const swapIx = await swapIdlIx.instruction();
+
+        const { serializedTransaction } = await getSerializedTransaction(
+            connection,
+            relayer,
+            alice,
+            [transferIx, swapIx]
         );
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data));

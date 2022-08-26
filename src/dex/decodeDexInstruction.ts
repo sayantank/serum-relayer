@@ -1,7 +1,7 @@
-import { DEX_ID } from '@bonfida/dex-v4';
 import { u8 } from '@solana/buffer-layout';
 import { TransactionInstruction } from '@solana/web3.js';
 import { deserialize } from 'borsh';
+import { DEX_ID } from './consts';
 import {
     cancelOrderInstruction,
     closeAccountInstruction,
@@ -12,7 +12,7 @@ import {
     newOrderInstruction,
     settleInstruction,
     swapInstruction,
-    sweepFeesInstruction,
+    sweepFeesInstruction
 } from './dex-v4/js/src/raw_instructions';
 import { DexInstruction } from './types';
 
@@ -66,7 +66,7 @@ export function decodeDexInstruction(instruction: TransactionInstruction, progra
             return deserialize(closeMarketInstruction.schema, closeMarketInstruction, instruction.data);
         }
         default: {
-            throw new Error('invalid dex instruction type');
+            throw new Error(`invalid dex instruction type ${type}`);
         }
     }
 }
