@@ -1,5 +1,5 @@
 import { DEX_ID } from '@bonfida/dex-v4';
-import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, decodeInstruction, isCloseAccountInstruction, isInitializeAccountInstruction, isTransferCheckedInstruction, isTransferInstruction, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { SystemProgram, Transaction } from '@solana/web3.js';
 import config from '../../config.json';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
@@ -8,18 +8,19 @@ import { connection } from './connection';
 import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from './consts';
 import { ENV_FEE_PAYER } from './env';
 import { validateATA } from './validateATA';
+import { validateCloseTokenAccount } from './validateCloseTokenAccount';
 import { validateCreateTokenAccount } from './validateCreateTokenAccount';
+import { validateInitTokenAccount } from './validateInitTokenAccount';
 import { validateTransfer } from './validateTransfer';
 
 export async function validateInstructions(transaction: Transaction): Promise<number> {
     let costLamports = 0;
     const [transferIx, ...restIxs] = transaction.instructions;
 
-    if (transferIx.programId.toBase58() != TOKEN_PROGRAM_ID.toBase58()) {
+    if (transferIx.programId.toBase58() != TOKEN_PROGRAM_ID.toBase58())
         throw new Error('token transfer instruction missing');
-    } else {
+    else
         costLamports += config.lamportsPerInstruction;
-    }
 
     for (const key of transferIx.keys) {
         if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER)) throw new Error('invalid account');
@@ -34,7 +35,17 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
                 break;
             }
             case TOKEN_PROGRAM_ID.toBase58(): {
-                await validateTransfer(ix, transaction.signatures);
+                const decodedIx = decodeInstruction(ix);
+
+                if (isTransferInstruction(decodedIx) || isTransferCheckedInstruction(decodedIx))
+                    await validateTransfer(ix, transaction.signatures);
+
+                else if (isInitializeAccountInstruction(decodedIx))
+                    await validateInitTokenAccount(ix);
+
+                else if (isCloseAccountInstruction(decodedIx))
+                    await validateCloseTokenAccount(ix);
+
                 break;
             }
             case ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(): {

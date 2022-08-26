@@ -17,6 +17,8 @@ export const USDC_DEV_MINT = new PublicKey('43zS2spaz1Doi1KDevSFKxf1KWhNDfjwbnXL
 export const BASE_MINT = new PublicKey('3JawYu5tJvG1FiVxtFt27P7Mz4QqoYmzFBvQuJHPnTKs');
 export const QUOTE_MINT = new PublicKey('EsJBwWW18Am9uG4G38yE6jtAQqd78Ym5QF8tgHVtCuJj');
 
+export const WRAPPED_SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+
 // Owner accounts
 export const BASE_ACCOUNT = new PublicKey('45uE47VJMvoxcbUZkmdn7xDMomqzkZySxGMBniJDv942');
 export const QUOTE_ACCOUNT = new PublicKey('EsgW2983rM3DF82dohCwKPT7CVFJadvnaWxP8mFF7DvQ');

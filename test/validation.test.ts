@@ -1,13 +1,13 @@
 import { Market, OrderType, Side } from '@bonfida/dex-v4';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
 import {
-    Account, ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
+    Account, ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createCloseAccountInstruction, createInitializeAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
     // createAssociatedTokenAccountInstruction,
     getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount,
     mintTo,
     TOKEN_PROGRAM_ID
 } from '@solana/spl-token';
-import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
+import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
 import fs from 'fs';
 
 import assert from 'assert';
@@ -23,7 +23,8 @@ import {
     QUOTE_ACCOUNT,
     QUOTE_MINT,
     sendRelayRequest,
-    USDC_DEV_MINT
+    USDC_DEV_MINT,
+    WRAPPED_SOL_MINT
 } from './utils';
 
 describe('validation', () => {
@@ -292,7 +293,7 @@ describe('validation', () => {
             lamports: await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE),
             space: ACCOUNT_SIZE,
             programId: TOKEN_PROGRAM_ID
-        })
+        });
 
         const { serializedTransaction } = await getSerializedTransaction(
             connection,
@@ -324,7 +325,7 @@ describe('validation', () => {
             lamports: await connection.getMinimumBalanceForRentExemption(FAULTY_SIZE),
             space: FAULTY_SIZE,
             programId: TOKEN_PROGRAM_ID
-        })
+        });
 
         const { serializedTransaction } = await getSerializedTransaction(
             connection,
@@ -335,5 +336,54 @@ describe('validation', () => {
         );
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
+    });
+
+    it('can create a wrapped SOL token account and close it', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'createTokenAccount',
+                },
+                {
+                    type: 'initTokenAccount',
+                },
+                {
+                    type: 'closeTokenAccount',
+                }
+            ],
+            alice,
+            USDC_DEV_MINT
+        )
+
+        const tokenAccount = Keypair.generate();
+        const createAccountIx = SystemProgram.createAccount({
+            fromPubkey: relayer.publicKey,
+            newAccountPubkey: tokenAccount.publicKey,
+            lamports: await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE),
+            space: ACCOUNT_SIZE,
+            programId: TOKEN_PROGRAM_ID
+        });
+
+        const initAccountIx = createInitializeAccountInstruction(
+            tokenAccount.publicKey,
+            new PublicKey(WRAPPED_SOL_MINT),
+            alice.publicKey
+        );
+
+        const closeAccountIx = createCloseAccountInstruction(
+            tokenAccount.publicKey,
+            alice.publicKey,
+            alice.publicKey
+        );
+
+        const { serializedTransaction } = await getSerializedTransaction(
+            connection,
+            relayer,
+            alice,
+            [transferIx, createAccountIx, initAccountIx, closeAccountIx],
+            { signer: tokenAccount }
+        );
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data));
     });
 });

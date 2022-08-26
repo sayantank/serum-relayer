@@ -23,8 +23,8 @@ export const relayInstructionNames = [
     'createTokenAccount',
     'transfer',
     'createATA',
-    'initTokenAccount', // TODO
-    'closeTokenAccount', // TODO
+    'initTokenAccount',
+    'closeTokenAccount',
     'createMarket',
     'newOrder',
     'swap',
