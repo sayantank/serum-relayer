@@ -4,13 +4,13 @@ import {
     decodeInstruction,
     getAccount,
     isTransferCheckedInstruction,
-    isTransferInstruction,
+    isTransferInstruction
 } from '@solana/spl-token';
 import { SignaturePubkeyPair, TransactionInstruction } from '@solana/web3.js';
+import { tokens } from '../utils/token';
+import { calculateCost } from './calculateCost';
 import { connection } from './connection';
 import { CostInfo } from './types';
-import { calculateCost } from './calculateCost';
-import { tokens } from '../utils/token';
 
 // Check that a transaction contains a valid transfer to Octane's token account
 export async function validateTransfer(
@@ -78,7 +78,9 @@ export async function validateTransfer(
     // This check also prevents users from transferring FROM the relayer account
     // It also assumes that there HAS TO be another signature apart from the relayer, which is true since the first transfer ix requires the same.
     // Check that the owner of the source account is valid and has signed
-    if (!owner.pubkey.equals(signatures[1].publicKey)) throw new Error('owner missing signature');
+    // Relayer is the first signature, check if the owner is in the remaining signatures
+    if (signatures.slice(1).map((s) => s.publicKey.toString()).indexOf(owner.pubkey.toString()) === -1)
+        throw new Error('owner missing signature');
 
     // NOTE: owner can be writable if transaction has dex instructions which require it to be writable
     // if (owner.isWritable) throw new Error('owner is writable');

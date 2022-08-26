@@ -1,6 +1,6 @@
 import { DEX_ID } from '@bonfida/dex-v4';
 import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Transaction } from '@solana/web3.js';
+import { SystemProgram, Transaction } from '@solana/web3.js';
 import config from '../../config.json';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
 import { initializeAccountInstruction } from '../dex/dex-v4/js/src/raw_instructions';
@@ -8,6 +8,7 @@ import { connection } from './connection';
 import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from './consts';
 import { ENV_FEE_PAYER } from './env';
 import { validateATA } from './validateATA';
+import { validateCreateTokenAccount } from './validateCreateTokenAccount';
 import { validateTransfer } from './validateTransfer';
 
 export async function validateInstructions(transaction: Transaction): Promise<number> {
@@ -26,6 +27,12 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
 
     for (const ix of restIxs) {
         switch (ix.programId.toBase58()) {
+            case SystemProgram.programId.toBase58(): {
+                const rent = await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE, 'confirmed');
+                await validateCreateTokenAccount(ix, { expectedAmountInLamports: rent });
+                costLamports += rent;
+                break;
+            }
             case TOKEN_PROGRAM_ID.toBase58(): {
                 await validateTransfer(ix, transaction.signatures);
                 break;

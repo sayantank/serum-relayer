@@ -6,9 +6,9 @@ import assert from 'assert';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import BN from 'bn.js';
 
-import { tokens } from '../src/utils/token';
 import { RelayInstructionConfig } from '../src/core/types';
 import { initializeAccountInstruction } from '../src/dex/dex-v4/js/src/raw_instructions';
+import { tokens } from '../src/utils/token';
 
 export const MARKET_ADDRESS = new PublicKey('29jz1E8YgfaCS3zmrPttauS4CJS8rZLLL7gdTWFSjWUS');
 
@@ -70,7 +70,10 @@ export const getSerializedTransaction = async (
     connection: Connection,
     relayer: Keypair,
     sender: Keypair,
-    instructions: TransactionInstruction[]
+    instructions: TransactionInstruction[],
+    extra?: {
+        signer: Keypair,
+    }
 ) => {
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     const tx = new Transaction({
@@ -79,7 +82,9 @@ export const getSerializedTransaction = async (
         lastValidBlockHeight,
     });
     tx.add(...instructions);
-    tx.partialSign(sender);
+    !extra
+        ? tx.partialSign(sender)
+        : tx.partialSign(sender, extra.signer);
 
     const serialized = tx.serialize({
         requireAllSignatures: false,

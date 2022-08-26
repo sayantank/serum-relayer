@@ -1,10 +1,11 @@
 import { Market, OrderType, Side } from '@bonfida/dex-v4';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
 import {
-    Account, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
+    Account, ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
     // createAssociatedTokenAccountInstruction,
     getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount,
-    mintTo
+    mintTo,
+    TOKEN_PROGRAM_ID
 } from '@solana/spl-token';
 import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
 import fs from 'fs';
@@ -248,7 +249,7 @@ describe('validation', () => {
         }
     });
 
-    it('cant drain the relayer because of unknown program id', async () => {
+    it('cant drain the relayer because ix not whitelisted', async () => {
         const transferIx = await getCostTransferIx(
             [
                 {
@@ -269,6 +270,69 @@ describe('validation', () => {
             transferIx,
             drainIx,
         ]);
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
+    });
+
+    it('can create account of token account size', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'createTokenAccount',
+                },
+            ],
+            alice,
+            USDC_DEV_MINT
+        )
+
+        const tokenAccount = Keypair.generate();
+        const createAccountIx = SystemProgram.createAccount({
+            fromPubkey: relayer.publicKey,
+            newAccountPubkey: tokenAccount.publicKey,
+            lamports: await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE),
+            space: ACCOUNT_SIZE,
+            programId: TOKEN_PROGRAM_ID
+        })
+
+        const { serializedTransaction } = await getSerializedTransaction(
+            connection,
+            relayer,
+            alice,
+            [transferIx, createAccountIx],
+            { signer: tokenAccount }
+        );
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data));
+    });
+
+    it('cant create account of non token account size', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'createTokenAccount',
+                },
+            ],
+            alice,
+            USDC_DEV_MINT
+        )
+
+        const FAULTY_SIZE = ACCOUNT_SIZE + 1;
+        const tokenAccount = Keypair.generate();
+        const createAccountIx = SystemProgram.createAccount({
+            fromPubkey: relayer.publicKey,
+            newAccountPubkey: tokenAccount.publicKey,
+            lamports: await connection.getMinimumBalanceForRentExemption(FAULTY_SIZE),
+            space: FAULTY_SIZE,
+            programId: TOKEN_PROGRAM_ID
+        })
+
+        const { serializedTransaction } = await getSerializedTransaction(
+            connection,
+            relayer,
+            alice,
+            [transferIx, createAccountIx],
+            { signer: tokenAccount }
+        );
 
         await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
     });

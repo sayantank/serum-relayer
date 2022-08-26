@@ -1,6 +1,6 @@
 {
     "rpcUrl": "https://api.devnet.solana.com",
-    "maxSignatures": 2,
+    "maxSignatures": 3,
     "maxInstructions": 7,
     "lamportsPerInstruction": 10000,
     "maxFee": 50000,
