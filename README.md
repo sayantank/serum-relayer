@@ -2,9 +2,10 @@
 
 [https://serum-relayer.vercel.app/api](https://serum-relayer.vercel.app/api)
 
-1. [What is this?](#what-is-this)
-2. [How does it work?](#how-does-it-work)
-3. [How much will it cost?](#how-much-will-it-cost)
+- [Serum Relayer 💧](#serum-relayer-)
+  - [What is this?](#what-is-this)
+  - [How does it work?](#how-does-it-work)
+  - [How much will it cost?](#how-much-will-it-cost)
 
 ## What is this?
 
@@ -70,8 +71,11 @@ The types of instructions supported are,
 
 ```javascript
 export const relayInstructionNames = [
+    'createTokenAccount',
     'transfer',
     'createATA',
+    'initTokenAccount',
+    'closeTokenAccount',
     'createMarket',
     'newOrder',
     'swap',
@@ -82,6 +86,7 @@ export const relayInstructionNames = [
     'sweepFees',
     'closeAccount',
     'closeMarket',
+    'swapExactTokensForTokens',
 ] as const;
 ```
 

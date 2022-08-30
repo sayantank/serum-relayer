@@ -20,8 +20,11 @@ export interface CostInfo {
 }
 
 export const relayInstructionNames = [
+    'createTokenAccount',
     'transfer',
     'createATA',
+    'initTokenAccount',
+    'closeTokenAccount',
     'createMarket',
     'newOrder',
     'swap',
@@ -32,6 +35,7 @@ export const relayInstructionNames = [
     'sweepFees',
     'closeAccount',
     'closeMarket',
+    'swapExactTokensForTokens',
 ] as const;
 export type RelayInstructionType = typeof relayInstructionNames[number];
 

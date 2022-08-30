@@ -1,12 +1,12 @@
+import { ACCOUNT_SIZE } from '@solana/spl-token';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import config from '../../config.json';
 import { connection } from '../core';
 import { calculateCost } from '../core/calculateCost';
 import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from '../core/consts';
+import { RelayInstructionConfig, relayInstructionNames } from '../core/types';
 import { cors, rateLimit } from '../middleware';
 import { tokens } from '../utils/token';
-import config from '../../config.json';
-import { RelayInstructionConfig, relayInstructionNames } from '../core/types';
-import { ACCOUNT_SIZE } from '@solana/spl-token';
 
 export default async function (request: VercelRequest, response: VercelResponse) {
     if (request.method !== 'POST') return response.status(405).send('Method not allowed');
@@ -36,7 +36,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
             costLamports += rent;
         }
 
-        if (instruction.type === 'createATA') {
+        if (instruction.type === 'createATA' || instruction.type === 'createTokenAccount') {
             const rent = await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE, 'confirmed');
             costLamports += rent;
         }
