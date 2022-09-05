@@ -4,6 +4,7 @@ import config from '../../config.json';
 import { DEX_ID } from '../dex/consts';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
 import { initializeAccountInstruction } from '../dex/dex-v4/js/src/raw_instructions';
+import { LENDING_PROGRAM_ID } from '../lending/consts';
 import { ROUTER_ID } from '../router/consts';
 import { decodeRouterInstruction } from '../router/decodeRouterInstructions';
 import { connection } from './connection';
@@ -86,6 +87,14 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
             }
             case ROUTER_ID.toBase58(): {
                 decodeRouterInstruction(ix);
+                ix.keys.forEach((key) => {
+                    if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER)) {
+                        throw new Error('fee relayer can only be used as fee payer');
+                    }
+                });
+                break;
+            }
+            case LENDING_PROGRAM_ID.toBase58(): {
                 ix.keys.forEach((key) => {
                     if ((key.isWritable || key.isSigner) && key.pubkey.equals(ENV_FEE_PAYER)) {
                         throw new Error('fee relayer can only be used as fee payer');
