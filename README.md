@@ -87,6 +87,10 @@ export const relayInstructionNames = [
     'closeAccount',
     'closeMarket',
     'swapExactTokensForTokens',
+    'depositReserveLiquidityAndObligationCollateral',
+    'withdrawObligationCollateralAndRedeemReserveLiquidity',
+    'refreshObligation',
+    'refreshObligation',
 ] as const;
 ```
 

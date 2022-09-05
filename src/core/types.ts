@@ -36,6 +36,10 @@ export const relayInstructionNames = [
     'closeAccount',
     'closeMarket',
     'swapExactTokensForTokens',
+    'depositReserveLiquidityAndObligationCollateral',
+    'withdrawObligationCollateralAndRedeemReserveLiquidity',
+    'refreshObligation',
+    'refreshObligation',
 ] as const;
 export type RelayInstructionType = typeof relayInstructionNames[number];
 
