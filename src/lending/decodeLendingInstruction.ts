@@ -7,7 +7,7 @@ const WHITELISTED_IXS = [
   LendingInstruction.DepositReserveLiquidityAndObligationCollateral,
   LendingInstruction.WithdrawObligationCollateralAndRedeemReserveLiquidity,
   LendingInstruction.RefreshObligation,
-  LendingInstruction.RefreshObligation,
+  LendingInstruction.RefreshReserve,
   LendingInstruction.InitObligation,
 ]
 

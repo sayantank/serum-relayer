@@ -91,7 +91,8 @@ export const relayInstructionNames = [
     'depositReserveLiquidityAndObligationCollateral',
     'withdrawObligationCollateralAndRedeemReserveLiquidity',
     'refreshObligation',
-    'refreshObligation',
+    'refreshReserve',
+    'initObligation',
 ] as const;
 ```
 
