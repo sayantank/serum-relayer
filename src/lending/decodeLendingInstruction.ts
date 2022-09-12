@@ -8,6 +8,7 @@ const WHITELISTED_IXS = [
   LendingInstruction.WithdrawObligationCollateralAndRedeemReserveLiquidity,
   LendingInstruction.RefreshObligation,
   LendingInstruction.RefreshObligation,
+  LendingInstruction.InitObligation,
 ]
 
 export function decodeLendingInstruction(instruction: TransactionInstruction, programId = LENDING_PROGRAM_ID) {

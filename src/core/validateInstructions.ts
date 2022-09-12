@@ -5,6 +5,7 @@ import { DEX_ID } from '../dex/consts';
 import { decodeDexInstruction } from '../dex/decodeDexInstruction';
 import { initializeAccountInstruction } from '../dex/dex-v4/js/src/raw_instructions';
 import { LENDING_PROGRAM_ID } from '../lending/consts';
+import { OBLIGATION_SIZE } from '../lending/model/state';
 import { ROUTER_ID } from '../router/consts';
 import { decodeRouterInstruction } from '../router/decodeRouterInstructions';
 import { connection } from './connection';
@@ -12,6 +13,7 @@ import { ORDER_LEN, USER_ACCOUNT_HEADER_LEN } from './consts';
 import { ENV_FEE_PAYER } from './env';
 import { validateATA } from './validateATA';
 import { validateCloseTokenAccount } from './validateCloseTokenAccount';
+import { validateCreateObligationAccount } from './validateCreateObligationAccount';
 import { validateCreateTokenAccount } from './validateCreateTokenAccount';
 import { validateInitTokenAccount } from './validateInitTokenAccount';
 import { validateTransfer } from './validateTransfer';
@@ -32,9 +34,15 @@ export async function validateInstructions(transaction: Transaction): Promise<nu
     for (const ix of restIxs) {
         switch (ix.programId.toBase58()) {
             case SystemProgram.programId.toBase58(): {
-                const rent = await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE, 'confirmed');
-                await validateCreateTokenAccount(ix, { expectedAmountInLamports: rent });
-                costLamports += rent;
+                if (ix.keys.length === 3) {
+                    const rent = await connection.getMinimumBalanceForRentExemption(OBLIGATION_SIZE, 'confirmed');
+                    await validateCreateObligationAccount(ix, { expectedAmountInLamports: rent });
+                    costLamports += rent;
+                } else {
+                    const rent = await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE, 'confirmed');
+                    await validateCreateTokenAccount(ix, { expectedAmountInLamports: rent });
+                    costLamports += rent;
+                }
                 break;
             }
             case TOKEN_PROGRAM_ID.toBase58(): {

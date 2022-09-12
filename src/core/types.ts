@@ -21,6 +21,7 @@ export interface CostInfo {
 
 export const relayInstructionNames = [
     'createTokenAccount',
+    'createObligationAccount',
     'transfer',
     'createATA',
     'initTokenAccount',
