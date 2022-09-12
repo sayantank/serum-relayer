@@ -72,6 +72,7 @@ The types of instructions supported are,
 ```javascript
 export const relayInstructionNames = [
     'createTokenAccount',
+    'createObligationAccount',
     'transfer',
     'createATA',
     'initTokenAccount',
