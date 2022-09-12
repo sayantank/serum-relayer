@@ -14,6 +14,7 @@ const WHITELISTED_IXS = [
 export function decodeLendingInstruction(instruction: TransactionInstruction, programId = LENDING_PROGRAM_ID) {
   if (!instruction.programId.equals(programId)) throw new Error("invalid program id");
 
-  const type = u8().decode(instruction.data);
-  if (WHITELISTED_IXS.indexOf(type) === -1) { throw new Error("invalid instruction type") }
+  const type = u8('instruction').decode(instruction.data);
+  console.log('instruction');
+  if (WHITELISTED_IXS.indexOf(type) === -1) { throw new Error("invalid lending instruction type") }
 }
