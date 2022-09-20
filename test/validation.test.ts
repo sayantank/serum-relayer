@@ -1,18 +1,16 @@
-import fs from 'fs';
 import { Market, OrderType, Side } from '@bonfida/dex-v4';
-import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { SelfTradeBehavior } from '@bonfida/dex-v4/dist/state';
 import {
-    Account,
-    getOrCreateAssociatedTokenAccount,
-    mintTo,
+    Account, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, createTransferInstruction,
     // createAssociatedTokenAccountInstruction,
-    getAssociatedTokenAddress,
-    createTransferCheckedInstruction,
-    createAssociatedTokenAccountInstruction,
-    createTransferInstruction,
+    getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount,
+    mintTo
 } from '@solana/spl-token';
+import { clusterApiUrl, Connection, Keypair, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
+import fs from 'fs';
 
+import assert from 'assert';
+import axios, { AxiosError } from 'axios';
 import {
     BASE_ACCOUNT,
     BASE_DECIMALS,
@@ -24,10 +22,8 @@ import {
     QUOTE_ACCOUNT,
     QUOTE_MINT,
     sendRelayRequest,
-    USDC_DEV_MINT,
+    USDC_DEV_MINT
 } from './utils';
-import axios, { AxiosError } from 'axios';
-import assert from 'assert';
 
 describe('validation', () => {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
@@ -250,5 +246,30 @@ describe('validation', () => {
             }
             assert(false, 'Failed to get tokens.');
         }
+    });
+
+    it('cant drain the relayer because of unknown program id', async () => {
+        const transferIx = await getCostTransferIx(
+            [
+                {
+                    type: 'transfer',
+                },
+            ],
+            alice,
+            USDC_DEV_MINT
+        );
+
+        const drainIx = SystemProgram.transfer({
+            fromPubkey: relayer.publicKey,
+            toPubkey: alice.publicKey,
+            lamports: 2_000_000_000,
+        })
+
+        const { serializedTransaction } = await getSerializedTransaction(connection, relayer, alice, [
+            transferIx,
+            drainIx,
+        ]);
+
+        await sendRelayRequest(serializedTransaction, ({ data }) => console.log(data), true);
     });
 });
